@@ -1,15 +1,15 @@
-from transformers import BertModel
+from transformers import DistilBertPreTrainedModel, DistilBertModel
 from torch import nn
 from transformers.modeling_outputs import SequenceClassifierOutput
 import torch
 
 
-class DNAModel(BertModel):
+class DNAModel(DistilBertPreTrainedModel):
     def __init__(self, config):
         super(DNAModel, self).__init__(config)
         self.config = config
-        self.left = BertModel(self.config)
-        self.right = BertModel(self.config)
+        self.left = DistilBertModel(self.config)
+        self.right = DistilBertModel(self.config)
         self.pre_classifier = nn.Linear(config.dim , config.dim )
         self.classifier = nn.Linear(config.dim, 1)
         self.dropout = nn.Dropout(config.seq_classif_dropout)
@@ -17,6 +17,7 @@ class DNAModel(BertModel):
         self.init_weights()
 
     def forward(self,
+        ids = None,
         input_ids=None,
         rev_input_ids=None,
         attention_mask=None,
