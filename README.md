@@ -1,5 +1,5 @@
 # Deqformer code 
-![](./img/arch.tiff)
+![](./img/arch.png)
 # Requirements
 ------------------------
 GPU is required. 
