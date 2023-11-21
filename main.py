@@ -1,23 +1,24 @@
 
 from transformers import BertConfig
-from .model import DNAModel
+from model import  DNAModel
+
 import argparse
 from tqdm.auto import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from transformers import BertConfig
 import torch, os
 from datasets import load_dataset
-from .utils import save_result, tokenization_dataset
-
-def train_model(model: torch.nn.Module, opt, dataloaders):
+from utils import save_result, tokenization_dataset, train_tokenizer
+from transformers import DistilBertConfig
+def train_model(model: torch.nn.Module, opt, dataloaders, tokenizer):
     for (train_dataloader, test_dataloader) in dataloaders:
-        configuration = BertConfig(vocab_size=256, model_type="regression", num_labels=1, n_layers = 3)
+        configuration = DistilBertConfig(vocab_size=256, model_type="regression", num_labels=1, n_layers = 6)
         model = DNAModel(configuration)
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         model.to(device)
-        train_model_single(model, opt, train_dataloader, test_dataloader)
+        train_model_single(model, opt, train_dataloader, test_dataloader, tokenizer)
 
-def train_model_single(model: torch.nn.Module, opt, train_dataloader, eval_dataloader):
+def train_model_single(model: torch.nn.Module, opt, train_dataloader, eval_dataloader, tokenizer):
     from transformers import AdamW, Adafactor, get_scheduler
     #optimizer = AdamW(model.parameters(), lr=5e-5)
     optimizer = Adafactor(model.parameters(), scale_parameter=False, relative_step=False, warmup_init=False, lr=1e-5)
@@ -45,13 +46,13 @@ def train_model_single(model: torch.nn.Module, opt, train_dataloader, eval_datal
             lr_scheduler.step()
             optimizer.zero_grad()
             progress_bar.update(1)
-        all_loss  /= len(train_dataloader)
+        all_loss /= len(train_dataloader)
         eval_loss = eval_model(model, eval_dataloader, opt, epoch)
         writer.add_scalar("Loss/train",all_loss , epoch)
         writer.add_scalar("Loss/test", eval_loss , epoch)
-        save_result(best_model, eval_dataloader, opt, True, epoch)
+        # save_result(best_model, eval_dataloader, opt, True, epoch)
         torch.save(best_model.state_dict(), f"{opt.log_dir}/{epoch}.dict")
-    save_result(best_model, eval_dataloader, opt, False, epoch)
+    save_result(best_model, eval_dataloader, opt, False, epoch, tokenizer)
     torch.save(best_model.state_dict(), f"{opt.log_dir}/transformer")
     writer.flush()
     writer.close()
@@ -106,9 +107,6 @@ def pre_process(opt):
     os.environ['PYTHONHASHSEED'] = str(seed)
     torch.backends.cudnn.deterministic = True
 
-    configuration = BertConfig(vocab_size=256, model_type="regression", num_labels=1, n_layers = 3)
-    model = DNAModel(configuration)
-
     # Accessing the model configuration
     dataroot = opt.dataroot
     data_files = {"train": f"{dataroot}/train.csv"}
@@ -121,17 +119,22 @@ def pre_process(opt):
     vals_ds = load_dataset('csv', data_files=data_files, split=[
         f'train[{k}%:{k+20}%]' for k in range(0, 100, 20)
     ])
-    return model, [tokenization_dataset(train_ds, test_ds) for train_ds, test_ds in zip(trains_ds, vals_ds)]
+
+    tokenizer = train_tokenizer(trains_ds, vals_ds)
+    configuration = DistilBertConfig(vocab_size=256, model_type="regression", num_labels=1, n_layers = 6)
+    model = DNAModel(configuration)
+
+    return model, [tokenization_dataset(train_ds, test_ds, tokenizer) for train_ds, test_ds in zip(trains_ds, vals_ds)], tokenizer
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     opt = initialize(parser)
-    model, dataloaders = pre_process(opt)
+    model, dataloaders, tokenizer = pre_process(opt)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model.to(device)
     if opt.mode == 'Train':
-        train_model(model, opt, dataloaders)    
+        train_model(model, opt, dataloaders, tokenizer)    
     elif opt.mode == 'Transfer':
         transfer_model(model, opt, dataloaders)
     else:
