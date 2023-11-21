@@ -25,8 +25,7 @@ Install required packages
 ```
 pip install -r requirements.txt
 ```
-# How to training model
-
+# How to run the code
 ```
-python3 main.py
+python3 main.py --mode Train  --dataroot data/SNP --log_dir logs/SNP --num_epochs 200
 ```
