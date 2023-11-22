@@ -1,4 +1,12 @@
 # Deqformer code 
+<p align="left">
+<a href="https://github.com/Deqformer/Deqformer-code/blob/main/license.txt"><img src="https://shields.io/badge/license-Apache%202-blue"></a>
+<a href=""><img src="https://img.shields.io/badge/platform-linux-green"></a>
+<a href=""><img src="https://img.shields.io/github/stars/Deqformer/Deqformer-code.svg"></a>
+<a href=""><img src="https://img.shields.io/github/followers/Deqformer.svg?style=social&label=Follow&maxAge=2592000"></a>
+<a href=""><img src="https://img.shields.io/github/stars/Deqformer/Deqformer-code?style=social"></a>
+<a href="https://github.com/Deqformer/Deqformer-code/issues"><img src="https://img.shields.io/github/issues-raw/Deqformer/Deqformer-code"></a>
+</p>
 ![](./img/arch.png)
 # Requirements
 ------------------------
